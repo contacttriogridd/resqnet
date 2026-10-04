@@ -114,6 +114,16 @@ describe('network monitor', () => {
     expect(networkStore.get()).toMatchObject({ state: 'online', reason: null, latencyMs: 120 });
   });
 
+  it('ignores a late successful response once the browser reports offline', () => {
+    const onLine = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    window.dispatchEvent(new Event('offline'));
+    reportRequestFailure();
+    expect(networkStore.get().state).toBe('offline');
+    reportRequestSuccess(80);
+    expect(networkStore.get().state).toBe('offline');
+    onLine.mockRestore();
+  });
+
   it('reports a slow but working connection as limited', () => {
     reportRequestSuccess(4000);
     expect(networkStore.get()).toMatchObject({ state: 'limited', reason: 'slow' });

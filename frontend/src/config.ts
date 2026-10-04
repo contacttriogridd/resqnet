@@ -7,3 +7,6 @@ export const EMERGENCY_NUMBER = '112';
 
 /** Data older than this is flagged as possibly outdated in the UI. */
 export const STALE_AFTER_MS = 30 * 60_000;
+
+/** Set by the service worker on API responses served from its cache instead of the server. */
+export const FROM_CACHE_HEADER = 'X-Resqnet-From-Cache';

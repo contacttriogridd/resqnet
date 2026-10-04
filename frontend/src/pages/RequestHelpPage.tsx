@@ -192,6 +192,7 @@ export function RequestHelpPage() {
               <LocationField
                 value={field.value as never}
                 onChange={field.onChange}
+                autoLocate
                 error={
                   errors.location
                     ? (errors.location as { text?: { message?: string }; message?: string }).text?.message ??

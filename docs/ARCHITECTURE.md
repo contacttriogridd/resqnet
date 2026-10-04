@@ -115,6 +115,7 @@ reports success/latency or failure. A demo-only switch can force OFFLINE for pre
 | Shelters, alerts, disaster types | IndexedDB (`datasets`, one region pack) | After a download | "Last synchronised HH:MM (n minutes ago)" |
 | My reports, safety status, sync queue | IndexedDB | Always | Per-item delivery badge |
 | Family members, my emergency info | IndexedDB only — **never uploaded** | Always | — |
+| Last known GPS position | IndexedDB (`meta.lastKnownLocation`) | Always | Age shown; sent with source `SAVED` and a note |
 | Public API GET responses | SW runtime cache (network-first, 5 s timeout) | Second safety net | — |
 | Map tiles viewed online | SW cache (cache-first, 600 tiles, 14 days) | Previously viewed areas only | Map shows a warning offline |
 

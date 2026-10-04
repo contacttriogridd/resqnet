@@ -20,12 +20,21 @@ export async function primeOnline(page: Page) {
   await expect(page.getByText(/Alerts last synchronised/)).toBeVisible();
 }
 
+/**
+ * Simulates a real outage. `setOffline` alone does not cut the SERVICE
+ * WORKER's own network access in Chromium, so API traffic is also aborted at
+ * the context level (which covers service-worker requests).
+ */
+const API_PATTERN = '**/api/**';
+
 export async function goOffline(page: Page) {
+  await page.context().route(API_PATTERN, (route) => route.abort('internetdisconnected'));
   await page.context().setOffline(true);
   await expect(page.getByRole('link', { name: /Connection: Offline/ })).toBeVisible();
 }
 
 export async function goOnline(page: Page) {
+  await page.context().unroute(API_PATTERN);
   await page.context().setOffline(false);
 }
 

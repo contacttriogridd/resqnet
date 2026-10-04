@@ -68,6 +68,7 @@ export const META = {
   simulateOffline: 'simulateOffline',
   installDismissedAt: 'installDismissedAt',
   myInfo: 'myInfo',
+  lastKnownLocation: 'lastKnownLocation',
 } as const;
 
 /** Stable random identifier for this installation (not linked to identity). */

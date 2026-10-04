@@ -1,5 +1,5 @@
 import type { ApiErrorBody } from '@resqnet/shared';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, FROM_CACHE_HEADER } from '../config';
 import { getDeviceId } from '../database/db';
 import { isSimulatedOffline, reportRequestFailure, reportRequestSuccess } from '../offline/network';
 import { clearSession, getAccessToken, refreshSession, sessionStore } from './session';
@@ -83,7 +83,9 @@ async function send(path: string, opts: RequestOptions, token: string | null): P
       credentials: 'same-origin',
       signal: controller.signal,
     });
-    reportRequestSuccess(Math.round(performance.now() - started));
+    // A cached answer from the service worker proves nothing about connectivity.
+    if (res.headers.get(FROM_CACHE_HEADER)) reportRequestFailure();
+    else reportRequestSuccess(Math.round(performance.now() - started));
     return res;
   } catch (err) {
     if (opts.signal?.aborted) throw err;

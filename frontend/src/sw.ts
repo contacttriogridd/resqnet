@@ -17,7 +17,7 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { cleanupOutdatedCaches, createHandlerBoundToURL, matchPrecache, precacheAndRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute, setCatchHandler } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, FROM_CACHE_HEADER } from './config';
 import { db, getDeviceId } from './database/db';
 import { TransportError, flushQueue, type SyncTransport } from './sync/engine';
 
@@ -49,7 +49,23 @@ registerRoute(
   new NetworkFirst({
     cacheName: 'resqnet-api',
     networkTimeoutSeconds: 5,
-    plugins: [new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 7 * 86_400 })],
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 80, maxAgeSeconds: 7 * 86_400 }),
+      {
+        // Tag cached answers so the page never mistakes them for a working
+        // connection (otherwise the app would flip back to "Online" offline).
+        cachedResponseWillBeUsed: async ({ cachedResponse }) => {
+          if (!cachedResponse) return null;
+          const headers = new Headers(cachedResponse.headers);
+          headers.set(FROM_CACHE_HEADER, '1');
+          return new Response(await cachedResponse.blob(), {
+            status: cachedResponse.status,
+            statusText: cachedResponse.statusText,
+            headers,
+          });
+        },
+      },
+    ],
   }),
 );
 

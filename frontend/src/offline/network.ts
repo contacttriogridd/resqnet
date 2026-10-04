@@ -79,6 +79,9 @@ export function isSimulatedOffline(): boolean {
 /** Called by the API client after every successful request. */
 export function reportRequestSuccess(latencyMs: number) {
   if (networkStore.get().simulated) return;
+  // A response that was already in flight when the connection dropped must not
+  // override the browser's own "offline" signal.
+  if (!browserOnline()) return;
   consecutiveFailures = 0;
   update({
     state: latencyMs > SLOW_MS ? 'limited' : 'online',

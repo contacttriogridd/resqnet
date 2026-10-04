@@ -50,7 +50,11 @@ error at exactly the moment someone needs help. RESQNET is designed so that a pe
 - **Home** — current situation (most severe active alert), four large emergency actions, quick actions,
   persistent 🟢 Online / 🟠 Limited / 🔴 Offline indicator.
 - **SOS / Request help** — confirmation screen (nothing is sent or dialled without an explicit tap), quick
-  type picker, GPS → saved location → manual description, your emergency info, one-tap calls to 112/108/101.
+  type picker, your emergency info, one-tap calls to 112/108/101.
+- **Rescue location without internet** — GPS uses satellites, not mobile data. A quick approximate fix
+  appears at once and is refined live (up to 2 minutes offline, because phones can't download satellite
+  assistance data). Every fix is remembered on the device, so the **last known location** (with its age)
+  is offered when a new fix is impossible; then the saved location or a typed description.
 - **Full request / report form** — type, severity, people (1 / 2–5 / 6–10 / 10+), special requirements,
   location, message, optional phone. Drafts auto-save to the device.
 - **Offline submission** — saved to IndexedDB with a local ID and **WAITING FOR CONNECTION** status, then
@@ -208,9 +212,9 @@ Then open DevTools → Network → *Offline*, or use the app's **Simulation mode
 ## Testing
 
 ```bash
-npm test                           # shared (15) + backend (60) + frontend unit (23)
+npm test                           # shared (15) + backend (60) + frontend unit (32)
 npx playwright install chromium    # once
-npm run test:e2e                   # builds the PWA, then 7 browser scenarios
+npm run test:e2e                   # builds the PWA, then 9 browser scenarios
 ```
 
 | Suite | What it covers |
@@ -218,8 +222,8 @@ npm run test:e2e                   # builds the PWA, then 7 browser scenarios
 | `shared` (Vitest) | Validation schemas, priority scoring, triage ordering, geo helpers |
 | `backend` unit | JWT signing/tampering, Argon2id, refresh-token hashing, reference codes |
 | `backend` integration (Supertest + real PostgreSQL) | Registration/login/refresh rotation & reuse detection/CSRF/logout; anonymous & idempotent incident creation incl. 5 concurrent duplicates; RBAC for every role; volunteer data minimisation; atomic accept; status workflow; sync batches (apply, replay, direct+queued dedupe, partial rejection, cancel ordering, attribution); alerts/shelters/contacts/offline pack; analytics & demo isolation; security headers, CORS, `alg:none`, forged/expired tokens, DB-role-over-token-role, injection strings, error leakage, body limit |
-| `frontend` unit (Vitest + fake-indexeddb) | Sync engine (delivery, backoff, reset on reconnect, stable operation IDs, duplicates, permanent vs transient rejection, batching & ordering, per-entity ordering, stuck-op recovery); offline submission, validation, drafts, cancel; bundled datasets; alert expiry; network state machine |
-| `frontend` E2E (Playwright, production build + service worker) | **UAT 1** online submit reaches backend · **UAT 2** offline submit stored in IndexedDB · **UAT 3** auto-sync on reconnect, no duplicates · **UAT 4** guides offline · **UAT 5** contacts offline with `tel:` links · **UAT 6** cached shelters with last-sync time · status indicator · 360 px layout |
+| `frontend` unit (Vitest + fake-indexeddb) | Sync engine (delivery, backoff, reset on reconnect, stable operation IDs, duplicates, permanent vs transient rejection, batching & ordering, per-entity ordering, stuck-op recovery); offline submission, validation, drafts, cancel; bundled datasets; alert expiry; network state machine; geolocation (quick fix → GPS refinement, longer offline deadline, last-known fallback, permission denied, cleanup) |
+| `frontend` E2E (Playwright, production build + service worker) | **UAT 1** online submit reaches backend · **UAT 2** offline submit stored in IndexedDB · **UAT 3** auto-sync on reconnect, no duplicates · **UAT 4** guides offline · **UAT 5** contacts offline with `tel:` links · **UAT 6** cached shelters with last-sync time · **GPS rescue location detected offline and synced with the request** · last-known-location fallback · status indicator · 360 px layout |
 
 ## PWA installation
 
