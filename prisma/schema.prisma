@@ -1,0 +1,447 @@
+// ─────────────────────────────────────────────────────────────
+// RESQNET relational schema (PostgreSQL)
+//
+// Conventions
+//  • UUID primary keys for every entity that can originate on a device or be
+//    referenced across systems.
+//  • snake_case table/column names in the database, camelCase in code.
+//  • `client_id` columns are device-generated UUIDs with UNIQUE constraints —
+//    they are the idempotency keys that make offline replay safe.
+//  • Enum values mirror shared/src/enums.ts.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CIVILIAN
+  VOLUNTEER
+  RESPONDER
+  ADMIN
+}
+
+enum IncidentType {
+  MEDICAL
+  TRAPPED
+  FLOOD
+  FIRE
+  BUILDING_COLLAPSE
+  MISSING_PERSON
+  FOOD_WATER
+  EVACUATION
+  OTHER
+}
+
+enum Severity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum PeopleCount {
+  ONE
+  TWO_TO_FIVE
+  SIX_TO_TEN
+  MORE_THAN_TEN
+}
+
+enum IncidentStatus {
+  PENDING
+  RECEIVED
+  VERIFIED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
+enum LocationSource {
+  GPS
+  MANUAL
+  SAVED
+}
+
+enum AlertSeverity {
+  INFO
+  ADVISORY
+  WARNING
+  CRITICAL
+}
+
+enum SafetyState {
+  SAFE
+  NEED_ASSISTANCE
+  EMERGENCY
+  UNKNOWN
+}
+
+enum ShelterStatus {
+  OPEN
+  FULL
+  CLOSED
+}
+
+enum ContactService {
+  EMERGENCY
+  POLICE
+  FIRE_RESCUE
+  AMBULANCE
+  DISASTER_MANAGEMENT
+  CONTROL_ROOM
+  HOSPITAL
+  SHELTER_COORDINATOR
+  HELPLINE
+  SUPPORT
+}
+
+enum SyncEntityType {
+  INCIDENT
+  SAFETY_STATUS
+}
+
+enum SyncOperationType {
+  CREATE
+  CANCEL
+}
+
+enum SyncResultStatus {
+  APPLIED
+  DUPLICATE
+  REJECTED
+}
+
+// ── Identity & access ────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @db.VarChar(80)
+  email        String    @unique @db.VarChar(254)
+  phone        String?   @db.VarChar(20)
+  passwordHash String    @map("password_hash")
+  role         Role      @default(CIVILIAN)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  sessions            RefreshSession[]
+  responder           Responder?
+  volunteer           Volunteer?
+  reportedIncidents   Incident[]         @relation("IncidentReporter")
+  assignedIncidents   Incident[]         @relation("IncidentResponder")
+  volunteerIncidents  Incident[]         @relation("IncidentVolunteer")
+  incidentUpdates     IncidentUpdate[]
+  safetyStatuses      UserSafetyStatus[]
+  alertsCreated       Alert[]
+  auditLogs           AuditLog[]
+  syncLogs            SyncLog[]
+
+  @@index([role])
+  @@map("users")
+}
+
+/// Rotating refresh tokens. Only a SHA-256 hash of the token is stored.
+model RefreshSession {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") @db.Char(64)
+  /// Every token issued by rotation shares a family; reuse of a revoked token revokes the family.
+  familyId   String    @map("family_id") @db.Uuid
+  userAgent  String?   @map("user_agent") @db.VarChar(300)
+  ipAddress  String?   @map("ip_address") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_sessions")
+}
+
+model Responder {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  agency      String?  @db.VarChar(120)
+  unitCode    String?  @map("unit_code") @db.VarChar(40)
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("responders")
+}
+
+model Volunteer {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  skills      String[] @default([])
+  region      String?  @db.VarChar(120)
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("volunteers")
+}
+
+// ── Reference data ───────────────────────────────────────────
+
+model DisasterType {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique @db.VarChar(40)
+  name        String   @db.VarChar(80)
+  description String?  @db.VarChar(300)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  alerts Alert[]
+  guides SafetyGuide[]
+
+  @@map("disaster_types")
+}
+
+model EmergencyContact {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String         @db.VarChar(120)
+  service      ContactService
+  phone        String         @db.VarChar(20)
+  /// NULL = applies everywhere (national number).
+  region       String?        @db.VarChar(120)
+  description  String?        @db.VarChar(300)
+  available24x7 Boolean       @default(true) @map("available_24x7")
+  sortOrder    Int            @default(100) @map("sort_order")
+  isActive     Boolean        @default(true) @map("is_active")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([region])
+  @@map("emergency_contacts")
+}
+
+model SafetyGuide {
+  id             String   @id @default(uuid()) @db.Uuid
+  slug           String   @unique @db.VarChar(60)
+  title          String   @db.VarChar(120)
+  disasterTypeId String   @map("disaster_type_id") @db.Uuid
+  summary        String   @db.VarChar(400)
+  /// [{ title: string, items: string[] }]
+  sections       Json
+  sortOrder      Int      @default(100) @map("sort_order")
+  isPublished    Boolean  @default(true) @map("is_published")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  disasterType DisasterType @relation(fields: [disasterTypeId], references: [id], onDelete: Restrict)
+
+  @@index([disasterTypeId])
+  @@map("safety_guides")
+}
+
+// ── Alerts ───────────────────────────────────────────────────
+
+model Alert {
+  id             String        @id @default(uuid()) @db.Uuid
+  title          String        @db.VarChar(120)
+  disasterTypeId String        @map("disaster_type_id") @db.Uuid
+  severity       AlertSeverity
+  region         String        @db.VarChar(120)
+  message        String        @db.VarChar(1000)
+  instruction    String        @db.VarChar(1000)
+  startsAt       DateTime      @default(now()) @map("starts_at") @db.Timestamptz(3)
+  expiresAt      DateTime      @map("expires_at") @db.Timestamptz(3)
+  isActive       Boolean       @default(true) @map("is_active")
+  /// Simulation data — never mixed silently with real operations.
+  isDemo         Boolean       @default(false) @map("is_demo")
+  createdById    String?       @map("created_by_id") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  disasterType DisasterType @relation(fields: [disasterTypeId], references: [id], onDelete: Restrict)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, expiresAt])
+  @@index([region])
+  @@map("alerts")
+}
+
+// ── Shelters ─────────────────────────────────────────────────
+
+model Shelter {
+  id                String        @id @default(uuid()) @db.Uuid
+  name              String        @db.VarChar(120)
+  address           String        @db.VarChar(300)
+  region            String        @db.VarChar(120)
+  latitude          Float
+  longitude         Float
+  capacity          Int
+  occupancy         Int           @default(0)
+  facilities        String[]      @default([])
+  contactPhone      String?       @map("contact_phone") @db.VarChar(20)
+  accessibilityInfo String?       @map("accessibility_info") @db.VarChar(500)
+  status            ShelterStatus @default(OPEN)
+  isActive          Boolean       @default(true) @map("is_active")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  resources ShelterResource[]
+
+  @@index([region])
+  @@index([latitude, longitude])
+  @@map("shelters")
+}
+
+model ShelterResource {
+  id           String   @id @default(uuid()) @db.Uuid
+  shelterId    String   @map("shelter_id") @db.Uuid
+  resourceType String   @map("resource_type") @db.VarChar(60)
+  quantity     Int      @default(0)
+  unit         String   @db.VarChar(20)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shelter Shelter @relation(fields: [shelterId], references: [id], onDelete: Cascade)
+
+  @@unique([shelterId, resourceType])
+  @@map("shelter_resources")
+}
+
+// ── Incidents ────────────────────────────────────────────────
+
+model Incident {
+  id                  String              @id @default(uuid()) @db.Uuid
+  /// Device-generated UUID — idempotency key for offline submissions.
+  clientId            String              @unique @map("client_id") @db.Uuid
+  /// Short human-friendly code read out over the phone, e.g. RQ-7K3M9P.
+  referenceCode       String              @unique @map("reference_code") @db.VarChar(12)
+  reporterId          String?             @map("reporter_id") @db.Uuid
+  /// Random per-install UUID; lets an anonymous device follow its own reports.
+  deviceId            String?             @map("device_id") @db.Uuid
+  type                IncidentType
+  severity            Severity
+  peopleCount         PeopleCount         @map("people_count")
+  specialRequirements String[]            @default([]) @map("special_requirements")
+  description         String?             @db.VarChar(500)
+  latitude            Float?
+  longitude           Float?
+  accuracyMeters      Float?              @map("accuracy_meters")
+  locationText        String?             @map("location_text") @db.VarChar(200)
+  locationSource      LocationSource      @map("location_source")
+  contactPhone        String?             @map("contact_phone") @db.VarChar(20)
+  status              IncidentStatus      @default(RECEIVED)
+  priorityScore       Int                 @default(0) @map("priority_score")
+  priorityReasons     String[]            @default([]) @map("priority_reasons")
+  assignedResponderId String?             @map("assigned_responder_id") @db.Uuid
+  assignedVolunteerId String?             @map("assigned_volunteer_id") @db.Uuid
+  /// When the person pressed "send" — may be long before the server saw it.
+  clientCreatedAt     DateTime            @map("client_created_at") @db.Timestamptz(3)
+  /// Server receipt time. clientCreatedAt ≠ createdAt ⇒ it was queued offline.
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  assignedAt          DateTime?           @map("assigned_at") @db.Timestamptz(3)
+  resolvedAt          DateTime?           @map("resolved_at") @db.Timestamptz(3)
+  /// Server-side sync bookkeeping: how the record arrived (DIRECT | SYNC).
+  syncSource          String              @default("DIRECT") @map("sync_source") @db.VarChar(10)
+  isDemo              Boolean             @default(false) @map("is_demo")
+
+  reporter          User?            @relation("IncidentReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  assignedResponder User?            @relation("IncidentResponder", fields: [assignedResponderId], references: [id], onDelete: SetNull)
+  assignedVolunteer User?            @relation("IncidentVolunteer", fields: [assignedVolunteerId], references: [id], onDelete: SetNull)
+  updates           IncidentUpdate[]
+
+  @@index([status, severity])
+  @@index([createdAt])
+  @@index([deviceId])
+  @@index([reporterId])
+  @@index([assignedResponderId])
+  @@index([assignedVolunteerId])
+  @@map("incidents")
+}
+
+model IncidentUpdate {
+  id         String          @id @default(uuid()) @db.Uuid
+  incidentId String          @map("incident_id") @db.Uuid
+  authorId   String?         @map("author_id") @db.Uuid
+  status     IncidentStatus?
+  note       String?         @db.VarChar(1000)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  incident Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  author   User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([incidentId, createdAt])
+  @@map("incident_updates")
+}
+
+// ── Personal safety status ───────────────────────────────────
+
+model UserSafetyStatus {
+  id              String      @id @default(uuid()) @db.Uuid
+  clientId        String      @unique @map("client_id") @db.Uuid
+  userId          String?     @map("user_id") @db.Uuid
+  deviceId        String?     @map("device_id") @db.Uuid
+  status          SafetyState
+  note            String?     @db.VarChar(280)
+  latitude        Float?
+  longitude       Float?
+  clientCreatedAt DateTime    @map("client_created_at") @db.Timestamptz(3)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, clientCreatedAt])
+  @@index([deviceId, clientCreatedAt])
+  @@map("user_safety_status")
+}
+
+// ── Sync & audit ─────────────────────────────────────────────
+
+/// One row per queued device operation processed by /api/sync.
+/// `operation_id` UNIQUE ⇒ replaying the same operation is a no-op.
+model SyncLog {
+  id            String            @id @default(uuid()) @db.Uuid
+  operationId   String            @unique @map("operation_id") @db.Uuid
+  deviceId      String            @map("device_id") @db.Uuid
+  userId        String?           @map("user_id") @db.Uuid
+  entityType    SyncEntityType    @map("entity_type")
+  entityId      String            @map("entity_id") @db.Uuid
+  operationType SyncOperationType @map("operation_type")
+  result        SyncResultStatus
+  serverId      String?           @map("server_id") @db.Uuid
+  error         String?           @db.VarChar(300)
+  retryCount    Int               @default(0) @map("retry_count")
+  queuedAt      DateTime          @map("queued_at") @db.Timestamptz(3)
+  processedAt   DateTime          @default(now()) @map("processed_at") @db.Timestamptz(3)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([deviceId, processedAt])
+  @@map("sync_logs")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String   @db.VarChar(60)
+  entityType String   @map("entity_type") @db.VarChar(40)
+  entityId   String?  @map("entity_id") @db.VarChar(64)
+  metadata   Json?
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

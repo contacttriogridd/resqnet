@@ -1,0 +1,33 @@
+{
+  "name": "resqnet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RESQNET — offline-first disaster response & emergency coordination platform",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "postinstall": "npm run build -w @resqnet/shared",
+    "build:shared": "npm run build -w @resqnet/shared",
+    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev -w @resqnet/backend\" \"npm run dev -w @resqnet/frontend\"",
+    "dev:backend": "npm run dev -w @resqnet/backend",
+    "dev:frontend": "npm run dev -w @resqnet/frontend",
+    "build": "npm run build -w @resqnet/shared && npm run build -w @resqnet/backend && npm run build -w @resqnet/frontend",
+    "db:migrate": "npm run db:migrate -w @resqnet/backend",
+    "db:deploy": "npm run db:deploy -w @resqnet/backend",
+    "db:seed": "npm run db:seed -w @resqnet/backend",
+    "db:reset": "npm run db:reset -w @resqnet/backend",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @resqnet/shared && npm run test -w @resqnet/backend && npm run test -w @resqnet/frontend",
+    "test:e2e": "npm run test:e2e -w @resqnet/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
