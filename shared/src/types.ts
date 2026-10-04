@@ -84,6 +84,8 @@ export interface IncidentDTO {
   createdAt: string;
   updatedAt: string;
   resolvedAt: string | null;
+  /** SYNC = it was saved offline on the device and delivered later by the sync queue. */
+  receivedVia: 'DIRECT' | 'SYNC';
   isDemo: boolean;
   updates?: IncidentUpdateDTO[];
 }

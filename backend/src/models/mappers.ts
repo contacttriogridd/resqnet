@@ -116,6 +116,7 @@ export function toIncidentDTO(row: IncidentRow, viewer?: Viewer): IncidentDTO {
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
     resolvedAt: isoOrNull(row.resolvedAt),
+    receivedVia: row.syncSource === 'SYNC' ? 'SYNC' : 'DIRECT',
     isDemo: row.isDemo,
     ...(row.updates ? { updates: row.updates.map(toIncidentUpdateDTO) } : {}),
   };

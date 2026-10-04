@@ -69,13 +69,13 @@ export async function getAnalytics(opts: { includeDemo: boolean; days?: number }
 }
 
 async function dailyVolume(since: Date, days: number, includeDemo: boolean) {
-  const rows = await prisma.$queryRaw<{ day: Date; count: bigint }[]>`
-    SELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AS day, count(*) AS count
+  const rows = await prisma.$queryRaw<{ day: string; count: bigint }[]>`
+    SELECT to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, count(*) AS count
     FROM incidents
     WHERE created_at >= ${since} AND (${includeDemo} OR is_demo = false)
     GROUP BY 1 ORDER BY 1`;
   // Buckets are UTC days regardless of the database session time zone.
-  const byDay = new Map(rows.map((r) => [r.day.toISOString().slice(0, 10), Number(r.count)]));
+  const byDay = new Map(rows.map((r) => [r.day, Number(r.count)]));
   const out: { date: string; count: number }[] = [];
   const start = new Date(Date.UTC(since.getUTCFullYear(), since.getUTCMonth(), since.getUTCDate()));
   for (let i = 0; i <= days; i++) {
