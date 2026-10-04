@@ -12,4 +12,5 @@ export default function globalSetup() {
   const env = { ...process.env, DATABASE_URL: process.env.TEST_E2E_DATABASE_URL! };
   execSync('npx prisma migrate deploy', { cwd: backend, env, stdio: 'pipe' });
   execSync('npx tsx src/database/seed.ts', { cwd: backend, env, stdio: 'pipe' });
+  execSync('npx tsx test/e2e-fixtures.ts', { cwd: backend, env, stdio: 'pipe' });
 }

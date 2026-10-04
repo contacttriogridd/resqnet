@@ -106,8 +106,8 @@ test('Scenario 6 — cached shelters show offline with their last-sync time', as
   await page.goto('/shelters');
   await expect(page.getByText('Shelter availability is not live while offline.')).toBeVisible();
   await expect(page.getByText(/Offline information — Shelter information last synchronised/)).toBeVisible();
-  await expect(page.getByRole('link', { name: /Peelamedu Multipurpose Stadium/ })).toBeVisible();
-  await page.getByRole('link', { name: /Peelamedu Multipurpose Stadium/ }).click();
+  await expect(page.getByRole('link', { name: /E2E Test Shelter/ })).toBeVisible();
+  await page.getByRole('link', { name: /E2E Test Shelter/ }).click();
   await expect(page.getByText(/places free of 800/)).toBeVisible();
 });
 
