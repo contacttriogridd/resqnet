@@ -19,6 +19,7 @@
     "dev:backend": "npm run dev -w @resqnet/backend",
     "dev:frontend": "npm run dev -w @resqnet/frontend",
     "build": "npm run build -w @resqnet/shared && npm run build -w @resqnet/backend && npm run build -w @resqnet/frontend",
+    "vercel-build": "node scripts/vercel-build.mjs",
     "db:migrate": "npm run db:migrate -w @resqnet/backend",
     "db:deploy": "npm run db:deploy -w @resqnet/backend",
     "db:seed": "npm run db:seed -w @resqnet/backend",

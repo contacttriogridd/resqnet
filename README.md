@@ -267,6 +267,20 @@ docker compose exec backend npx tsx backend/src/database/seed.ts   # first run
   hashed assets, and `/api` proxied to the backend (same origin, so no CORS and the `SameSite=Strict`
   refresh cookie works).
 
+### Vercel
+
+The repository deploys as a single Vercel project: the PWA is served from `frontend/dist`, and the Express
+API runs as one Vercel Function (`api/index.js`) that `vercel.json` rewrites every `/api/*` request to. The
+API and PWA share one origin, the same as in the nginx setup.
+
+1. Import the GitHub repository into Vercel (the settings come from `vercel.json`).
+2. **Storage → Create → Prisma Postgres**, connect it to the project. This sets `DATABASE_URL`.
+3. Add `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `SEED_ADMIN_PASSWORD`, `TRUST_PROXY=1` and
+   `DEMO_MODE_ENABLED` as environment variables, then redeploy.
+
+Each build runs `prisma migrate deploy` and the idempotent seed when `DATABASE_URL` is set
+(`scripts/vercel-build.mjs`). Rate limits are per function instance on Vercel.
+
 Production checklist: HTTPS (required for service workers & geolocation outside localhost), strong unique
 secrets, `DEMO_MODE_ENABLED=false`, real regional contacts and shelters, database backups, and log shipping.
 
