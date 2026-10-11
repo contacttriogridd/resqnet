@@ -55,7 +55,7 @@ export default function ShareLocationPage() {
           <div className="grid gap-2 sm:grid-cols-3">
             <a
               href={`sms:?&body=${encodeURIComponent(message)}`}
-              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-info px-4 font-semibold text-white dark:text-[#0c111d]"
+              className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl bg-info px-4 font-semibold text-white"
             >
               <MessageSquare className="size-5" aria-hidden /> Send by SMS
             </a>

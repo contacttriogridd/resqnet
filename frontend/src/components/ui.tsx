@@ -18,7 +18,7 @@ type Size = 'md' | 'lg' | 'xl';
 const VARIANT: Record<Variant, string> = {
   // Red is reserved for emergency actions.
   emergency: 'bg-brand text-on-brand hover:bg-brand-hover shadow-sm',
-  primary: 'bg-info text-white hover:opacity-90 dark:text-[#0c111d]',
+  primary: 'bg-info text-white hover:opacity-90',
   secondary: 'bg-surface text-text border-2 border-line-strong hover:bg-surface-2',
   ghost: 'text-text hover:bg-surface-2',
   'danger-outline': 'bg-surface text-critical border-2 border-critical-line hover:bg-critical-bg',

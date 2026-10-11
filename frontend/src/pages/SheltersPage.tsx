@@ -114,7 +114,7 @@ export default function SheltersPage() {
                   onClick={() => setView(v)}
                   className={cn(
                     'inline-flex min-h-10 items-center gap-1.5 rounded-lg px-3 font-semibold',
-                    view === v ? 'bg-info text-white dark:text-[#0c111d]' : 'text-text',
+                    view === v ? 'bg-info text-white' : 'text-text',
                   )}
                 >
                   <Icon className="size-4" aria-hidden /> {label}

@@ -108,7 +108,7 @@ export default function ResponderDashboard() {
               onClick={() => setTab(t)}
               className={cn(
                 'min-h-10 rounded-lg px-3 font-semibold',
-                tab.key === t.key ? 'bg-info text-white dark:text-[#0c111d]' : 'text-text hover:bg-surface-2',
+                tab.key === t.key ? 'bg-info text-white' : 'text-text hover:bg-surface-2',
               )}
             >
               {t.label}

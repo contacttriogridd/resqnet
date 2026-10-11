@@ -92,7 +92,7 @@ error at exactly the moment someone needs help. RESQNET is designed so that a pe
 
 ### Cross-cutting
 - WCAG-minded UI: large touch targets (≥ 48 px), visible focus, semantic HTML, labels, skip link, status
-  never shown by colour alone, reduced-motion support, automatic dark mode, 106 % base font size.
+  never shown by colour alone, reduced-motion support, high-contrast light theme, 106 % base font size.
 - Mobile-first (tested at 360 px with no horizontal scrolling), bottom navigation with an always-visible
   **HELP** button; sidebar on desktop.
 

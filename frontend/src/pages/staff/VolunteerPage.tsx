@@ -71,7 +71,7 @@ export default function VolunteerPage() {
               role="tab"
               aria-selected={tab === k}
               onClick={() => setTab(k)}
-              className={cn('min-h-10 rounded-lg px-3 font-semibold', tab === k ? 'bg-info text-white dark:text-[#0c111d]' : 'hover:bg-surface-2')}
+              className={cn('min-h-10 rounded-lg px-3 font-semibold', tab === k ? 'bg-info text-white' : 'hover:bg-surface-2')}
             >
               {label}
             </button>
