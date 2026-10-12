@@ -1,7 +1,7 @@
 /**
  * Test fixtures for the Playwright E2E database ONLY (TEST_E2E_DATABASE_URL).
- * The production seed contains no shelters, so the offline-shelter scenario
- * needs one of its own. Idempotent.
+ * The offline-shelter scenario uses a fixture shelter of its own rather than the
+ * seed's sample shelters, which admins may edit or remove. Idempotent.
  */
 import { prisma } from '../src/models/prisma.js';
 

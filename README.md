@@ -182,12 +182,15 @@ Create the databases (any PostgreSQL client), e.g. `createdb resqnet && createdb
 
 ```bash
 npm run db:deploy    # apply migrations (non-destructive)
-npm run db:seed      # real reference data only: guides, disaster types, national numbers, admin
+npm run db:seed      # guides, disaster types, national numbers, sample shelters, admin
 ```
 
-The seed is idempotent and contains **no sample or demo data**. It loads the safety guides, disaster types
-and India's national emergency numbers (112, 100, 101, 108, 1078, 1070, 1077, 1091, 1098). Shelters,
-regional contacts and alerts are added by an administrator under **Manage data**.
+The seed is idempotent. It loads the safety guides, disaster types, India's national emergency numbers
+(112, 100, 101, 108, 1078, 1070, 1077, 1091, 1098) and **14 sample shelters** in Coimbatore and Chennai.
+The shelters sit in real localities, but the buildings, capacities and occupancy are illustrative. Their
+contact number is 1077, the real district emergency operation centre line. A sample shelter is created only
+if it is missing, so edits and removals made under **Manage data** survive re-seeding. Regional contacts and
+alerts are added by an administrator under **Manage data**.
 
 | Account | Password |
 |---|---|
@@ -344,6 +347,7 @@ Other limitations:
 - Map tiles are available offline only for areas viewed online; the list view is the reliable fallback.
   Distances are straight-line estimates, not routes.
 - The suggested priority is a transparent rule-based score, not a validated clinical triage tool.
+- Seeded shelters are sample data, not official relief camps. Replace them with real ones before use.
 - Rate limiting and the user-state cache are in-memory (single API instance); multi-instance deployments
   should use a shared store such as Redis.
 
